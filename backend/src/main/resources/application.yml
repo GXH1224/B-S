@@ -1,0 +1,147 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    max-swallow-size: -1
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 2048
+
+spring:
+  application:
+    name: efficiency-evaluation-system
+  profiles:
+    active: dev
+  main:
+    banner-mode: console
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 200MB
+      max-request-size: 250MB
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+        jdbc:
+          batch_size: 200
+          time_zone: GMT+8
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+  sql:
+    init:
+      mode: always
+      continue-on-error: false
+      encoding: UTF-8
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+ees:
+  # ---------------- 安全与认证 ----------------
+  security:
+    # JWT 签名密钥。此处刻意留空：内置默认密钥会随交付包一起给到甲方，等同公开密钥，
+    # 任何人都能据此伪造 SYSTEM_ADMIN 令牌（实测可越权读写全部接口）。
+    # 生效顺序（无需任何配置即可离线运行）：
+    #   1) 环境变量 EES_JWT_SECRET（甲方有统一密钥管理要求时使用）
+    #   2) 本地密钥文件 <ees.storage.root>/.jwt-secret（首次启动自动生成并持久化）
+    #   3) 进程内随机密钥（仅告警，重启后需重新登录）
+    # 解析逻辑见 com.ees.security.JwtSecretProvider
+    jwt-secret: ${EES_JWT_SECRET:}
+    jwt-expire-minutes: 480
+    jwt-issuer: ees
+    # 登录失败锁定策略
+    max-login-fail: 5
+    lock-minutes: 15
+    # 免认证路径
+    permit-paths:
+      - /api/auth/login
+      - /api/auth/captcha
+      - /api/health
+      - /api/health/**
+      - /api/info
+      - /error
+  # ---------------- 文件与存储 ----------------
+  storage:
+    root: ${EES_STORAGE_ROOT:./data}
+    upload-dir: ${EES_STORAGE_ROOT:./data}/upload
+    snapshot-dir: ${EES_STORAGE_ROOT:./data}/snapshot
+    report-dir: ${EES_STORAGE_ROOT:./data}/report
+    temp-dir: ${EES_STORAGE_ROOT:./data}/temp
+    allowed-extensions: xlsx,xls,csv,json,zip,txt
+    max-upload-mb: 200
+  # ---------------- 算法 ----------------
+  algorithm:
+    # 算法引擎实现：JAVA_NATIVE（内置 Java 实现）/ CPP_ENGINE（外部 C++ 算法服务）
+    engine: ${EES_ALGORITHM_ENGINE:JAVA_NATIVE}
+    version: ${EES_ALGORITHM_VERSION:java-1.0.0}
+    # C++ 独立算法服务地址（engine=CPP_ENGINE 时生效）
+    cpp-engine-url: ${EES_CPP_ENGINE_URL:http://127.0.0.1:9090}
+    cpp-engine-timeout-seconds: 600
+    # 任务执行
+    max-concurrent-tasks: 4
+    task-timeout-seconds: 900
+    # AHP 一致性检验默认阈值
+    ahp-cr-threshold: 0.1
+    # 计算精度（保留小数位）
+    score-scale: 4
+    display-scale: 2
+    # 浮点比较容差（基准测试）
+    float-abs-tolerance: 0.0001
+    float-rel-tolerance: 0.0001
+  # ---------------- 数据接入 ----------------
+  datasource-connector:
+    # 外部（甲方业务库）只读 JDBC 连接
+    connect-timeout-seconds: 15
+    query-timeout-seconds: 120
+    max-rows: 200000
+    # 禁止出现的 SQL 关键字（只读白名单校验）
+    forbidden-keywords: insert,update,delete,drop,truncate,alter,create,grant,revoke,merge,call,execute
+  # ---------------- 报告导出 ----------------
+  report:
+    company: 效能评估系统
+    pdf-font-path: ${EES_PDF_FONT_PATH:}
+    pdf-font-name: ${EES_PDF_FONT_NAME:STSong-Light}
+    pdf-font-encoding: ${EES_PDF_FONT_ENCODING:UniGB-UCS2-H}
+    pdf-font-search-paths:
+      - C:/Windows/Fonts/msyh.ttc
+      - C:/Windows/Fonts/simhei.ttf
+      - C:/Windows/Fonts/simsun.ttc
+      - /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
+      - /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+  # ---------------- 审计 ----------------
+  audit:
+    enabled: true
+    # 需要记录审计日志的 HTTP 方法
+    methods: POST,PUT,DELETE,PATCH
+
+logging:
+  level:
+    root: INFO
+    com.ees: INFO
+    org.hibernate.SQL: WARN
+  file:
+    name: ${EES_STORAGE_ROOT:./data}/logs/evaluation-backend.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 2GB

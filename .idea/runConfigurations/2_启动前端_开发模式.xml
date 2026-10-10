@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <!--
+    前端开发模式（Vite，端口 5173，带热更新）。
+    仅在需要改前端界面时使用；只跑后端（配置①）就已经能出完整页面。
+    开发模式下 Vite 会把 /api 代理到 8080 的后端。
+  -->
+  <configuration default="false" name="② 启动前端（开发模式 5173）" type="js.build_tools.npm" factoryName="npm">
+    <package-json value="$PROJECT_DIR$/frontend/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

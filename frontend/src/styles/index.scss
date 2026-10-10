@@ -1,0 +1,367 @@
+/**
+ * 设计令牌（方案 7.4 混合式 UI）：
+ * 领导与结果页面使用高信息密度的深色侧栏 + 可视化卡片；
+ * 数据、任务与系统管理页面使用浅色工作台布局。
+ */
+:root {
+  --ees-primary: #1f6feb;
+  --ees-primary-light: #4f92f7;
+  --ees-primary-dark: #1552b8;
+  --ees-success: #17a673;
+  --ees-warning: #e6a23c;
+  --ees-danger: #e04b4b;
+  --ees-info: #6b7c93;
+
+  --ees-sidebar-bg: #101a2c;
+  --ees-sidebar-bg-2: #16233a;
+  --ees-sidebar-text: #a9b6cc;
+  --ees-sidebar-text-active: #ffffff;
+  --ees-sidebar-width: 232px;
+  --ees-header-height: 58px;
+
+  --ees-workbench-bg: #f4f7fb;
+  --ees-card-bg: #ffffff;
+  --ees-border: #e3e9f2;
+  --ees-text: #1f2a3d;
+  --ees-text-secondary: #5b6b86;
+  --ees-text-muted: #8b98ad;
+
+  --ees-radius: 8px;
+  --ees-radius-sm: 6px;
+  --ees-shadow: 0 2px 10px rgba(21, 44, 84, 0.06);
+  --ees-shadow-hover: 0 6px 20px rgba(21, 44, 84, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Helvetica, Arial,
+    system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--ees-text);
+  background: var(--ees-workbench-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--ees-primary);
+  text-decoration: none;
+}
+
+/* ---------------- 通用布局 ---------------- */
+
+.ees-page {
+  padding: 16px 20px 28px;
+}
+
+.ees-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.ees-page-title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin: 0 0 4px;
+  color: var(--ees-text);
+}
+
+.ees-page-desc {
+  font-size: 13px;
+  color: var(--ees-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ees-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ees-card {
+  background: var(--ees-card-bg);
+  border: 1px solid var(--ees-border);
+  border-radius: var(--ees-radius);
+  box-shadow: var(--ees-shadow);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.ees-card--flat {
+  box-shadow: none;
+}
+
+.ees-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ees-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.ees-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--ees-text-muted);
+}
+
+.ees-hint {
+  font-size: 12px;
+  color: var(--ees-text-muted);
+  line-height: 1.7;
+}
+
+.ees-mono {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+}
+
+.ees-pre {
+  background: #0f172a;
+  color: #d7e3f4;
+  border-radius: var(--ees-radius-sm);
+  padding: 12px 14px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---------------- 指标卡片（驾驶舱 / 结果页） ---------------- */
+
+.ees-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ees-stat {
+  position: relative;
+  background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+  border: 1px solid var(--ees-border);
+  border-radius: var(--ees-radius);
+  padding: 16px 18px;
+  box-shadow: var(--ees-shadow);
+  overflow: hidden;
+}
+
+.ees-stat::after {
+  content: "";
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(31, 111, 235, 0.07);
+}
+
+.ees-stat-label {
+  font-size: 13px;
+  color: var(--ees-text-secondary);
+  margin-bottom: 8px;
+}
+
+.ees-stat-value {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ees-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ees-stat-value small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ees-text-muted);
+  margin-left: 4px;
+}
+
+.ees-stat-foot {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ees-text-muted);
+}
+
+.ees-stat--primary .ees-stat-value {
+  color: var(--ees-primary);
+}
+.ees-stat--success .ees-stat-value {
+  color: var(--ees-success);
+}
+.ees-stat--warning .ees-stat-value {
+  color: var(--ees-warning);
+}
+.ees-stat--danger .ees-stat-value {
+  color: var(--ees-danger);
+}
+
+/* ---------------- 图表区 ---------------- */
+
+.ees-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+  gap: 14px;
+}
+
+.ees-chart-card {
+  background: var(--ees-card-bg);
+  border: 1px solid var(--ees-border);
+  border-radius: var(--ees-radius);
+  box-shadow: var(--ees-shadow);
+  padding: 14px 16px 8px;
+}
+
+.ees-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  /* 卡头右侧可能放统计区间等控件，卡片变窄时允许换行，避免把标题挤变形 */
+  flex-wrap: wrap;
+}
+
+.ees-chart-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ees-text);
+}
+
+.ees-chart-sub {
+  font-size: 12px;
+  color: var(--ees-text-muted);
+  margin-top: 2px;
+}
+
+.ees-chart-empty {
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ees-text-muted);
+  font-size: 13px;
+  background: repeating-linear-gradient(
+    45deg,
+    #fafcff,
+    #fafcff 12px,
+    #f4f8ff 12px,
+    #f4f8ff 24px
+  );
+  border-radius: var(--ees-radius-sm);
+}
+
+/* ---------------- 深色侧栏 ---------------- */
+
+.ees-sidebar {
+  background: linear-gradient(180deg, var(--ees-sidebar-bg) 0%, var(--ees-sidebar-bg-2) 100%);
+}
+
+.ees-sidebar .el-menu {
+  border-right: none;
+  background: transparent;
+}
+
+.ees-sidebar .el-menu-item,
+.ees-sidebar .el-sub-menu__title {
+  color: var(--ees-sidebar-text);
+  height: 44px;
+  line-height: 44px;
+  font-size: 13.5px;
+}
+
+.ees-sidebar .el-menu-item:hover,
+.ees-sidebar .el-sub-menu__title:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ees-sidebar-text-active);
+}
+
+.ees-sidebar .el-menu-item.is-active {
+  background: linear-gradient(90deg, rgba(31, 111, 235, 0.9) 0%, rgba(31, 111, 235, 0.55) 100%);
+  color: #fff;
+  font-weight: 600;
+  border-right: 3px solid #6fb1ff;
+}
+
+/* ---------------- 通用状态色 ---------------- */
+
+.ees-level-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 1px 9px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ees-level-优 {
+  background: #e6f7f0;
+  color: #17a673;
+}
+.ees-level-良 {
+  background: #e8f1fe;
+  color: #1f6feb;
+}
+.ees-level-中 {
+  background: #fdf3e3;
+  color: #d68b1f;
+}
+.ees-level-差 {
+  background: #fdeaea;
+  color: #e04b4b;
+}
+.ees-level-未评级 {
+  background: #eef1f6;
+  color: #6b7c93;
+}
+
+.ees-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Element Plus 局部微调 */
+.el-table th.el-table__cell {
+  background: #f7f9fd !important;
+  color: var(--ees-text) !important;
+  font-weight: 600;
+}
+
+.el-descriptions__label {
+  color: var(--ees-text-secondary) !important;
+}
+
+.ees-scroll-x {
+  overflow-x: auto;
+}

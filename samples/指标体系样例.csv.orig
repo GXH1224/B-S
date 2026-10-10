@@ -1,0 +1,7 @@
+indicator_code,indicator_name,parent_code,level,unit,direction,weight,min_value,max_value,interval_lower,interval_upper,optimal_value,score_rule,sort_order,remark
+A,综合效能,,1,,POSITIVE,,,,,,,1,一级指标
+A1,作战能力,A,2,,POSITIVE,0.6,,,,,,1,二级指标
+A2,保障能力,A,2,,POSITIVE,0.4,,,,,,2,二级指标
+A11,反应时间,A1,3,秒,NEGATIVE,0.5,0,60,,,,,1,越小越好（负向指标）
+A12,命中精度,A1,3,%,POSITIVE,0.5,0,100,,,,,2,正向指标
+A21,备件满足率,A2,3,%,POSITIVE,1,0,100,,,,,1,正向指标

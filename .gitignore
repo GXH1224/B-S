@@ -1,0 +1,65 @@
+# ---------------- Java / Maven ----------------
+backend/target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+pom.xml.tag
+
+# ---------------- Node / Vite ----------------
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------- 运行期数据（上传文件、快照、报告、日志） ----------------
+# 注意：这里必须用**前导斜杠锚定到仓库根**。
+# 曾经的写法是不带斜杠的 `data/` 与 `logs/`，而 gitignore 中「不带斜杠的目录名」会匹配任意层级，
+# 于是 `frontend/src/views/data/` 整目录被误伤 —— 数据接入模块的三个源码文件
+# （DataBatchList.vue / DataSourceList.vue / SnapshotList.vue）从初始提交起就一直没进版本库。
+# 现在锚定为 /data/ 与 /logs/（仅仓库根下的运行期目录），后端运行期目录仍由 backend/data/ 覆盖。
+backend/data/
+/data/
+*.log
+/logs/
+
+# ---------------- 密钥文件（绝不入库） ----------------
+# JwtSecretProvider 首次启动生成的 JWT 签名密钥。正常落在 backend/data/ 下（已被上面的
+# backend/data/ 规则覆盖），这里再单独忽略一次，防止有人把 ees.storage.root 改到项目根
+# 或其它目录时把密钥误提交进版本库。
+.jwt-secret
+**/.jwt-secret
+
+# ---------------- IDE ----------------
+# 忽略 IDEA 的本地配置，但保留共享的运行配置（.idea/runConfigurations）
+.idea/*
+!.idea/runConfigurations/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# ---------------- 操作系统 ----------------
+Thumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ---------------- 临时文件 ----------------
+*.tmp
+*.bak
+*.swp
+*~
+~$*
+"docker-offline/" 
+"*.tar" 

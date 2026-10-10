@@ -1,0 +1,45 @@
+# ============================================================================
+#  .dockerignore —— 控制发送给 Docker 构建引擎的文件范围
+#
+#  作用：不加这个文件，docker build 会把整个项目目录（含 frontend/node_modules，
+#        通常几百 MB）打包发给 Docker 引擎，构建会非常慢。
+#        镜像里实际只需要 backend/target/evaluation-backend.jar 这一个文件。
+# ============================================================================
+
+# 版本控制与 IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# 后端源码与运行期数据（镜像里只需要 jar）
+backend/src
+backend/data
+
+# 构建产物：排除 target 下所有内容，但保留最终 jar
+backend/target/*
+!backend/target/evaluation-backend.jar
+
+# 前端源码与依赖（页面已内嵌在 jar 里，不需要单独打包）
+frontend/node_modules
+frontend/dist
+frontend/src
+frontend/public
+
+# 文档、样例、数据库脚本、辅助脚本（不进镜像）
+docs
+samples
+db
+scripts
+*.md
+*.bat
+*.cmd
+*.txt
+
+# 离线交付包与镜像 tar（避免递归打包）
+docker-offline
+*.tar
+*.tar.gz
+
+# 日志
+*.log

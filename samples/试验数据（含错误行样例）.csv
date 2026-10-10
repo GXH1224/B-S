@@ -1,0 +1,5 @@
+project_code,object_code,object_name,data_time,indicator_code,indicator_value,unit,source_batch,remark
+PRJ-2026-001,OBJ-006,方案六（含错误行）,2026-09-21 10:00:00,A11,20.1,秒,BATCH-02,正常行
+PRJ-2026-001,OBJ-006,方案六（含错误行）,2026-09-21 10:00:00,A12,abc,%,BATCH-02,"错误行：数值格式非法，应被标记为错误行并可下载明细"
+PRJ-2026-001,OBJ-006,方案六（含错误行）,2026-09-21 10:00:00,A21,90.5,%,BATCH-02,正常行
+PRJ-2026-001,OBJ-007,方案七,2026-09-21 10:00:00,A12,95,%,BATCH-02,"缺少 A11 与 A21，用于演示缺失值与指标未覆盖校验"

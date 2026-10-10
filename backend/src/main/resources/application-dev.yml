@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/efficiency_evaluation?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${EES_DB_USER:ees}
+    # 仅开发档（dev）保留的本地演示库口令默认值，方便本机直接启动调试。
+    # prod 生产档刻意不设默认值（见 application-prod.yml），必须由环境变量 EES_DB_PASSWORD 注入，
+    # 避免把数据库口令硬编码进交付物。企业离线部署请使用 prod 档。
+    password: ${EES_DB_PASSWORD:Ees@2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: EesHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 30
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+
+  # 开发环境由后端直接托管前端构建产物：
+  # 在 IDEA 里只运行后端（EesApplication），浏览器打开 http://127.0.0.1:8080/ 即为完整页面。
+  # 说明：
+  #   - 多个位置按顺序查找，兼容"工作目录=backend"(IDEA 默认) 与 "工作目录=项目根" 两种启动方式；
+  #   - 必须保留 classpath:/static/，否则会覆盖掉 Spring Boot 的默认静态资源位置；
+  #   - 首页 / 由 Spring Boot 的 WelcomePageHandlerMapping 自动映射到 dist/index.html；
+  #   - 前端为 hash 路由，不需要 history fallback。
+  # 前提：先执行过 npm run build 生成 frontend/dist（若只想开发前端，可用 npm run dev 走 5173）。
+  web:
+    resources:
+      static-locations: file:../frontend/dist/,file:./frontend/dist/,classpath:/static/
+      cache:
+        period: 0
+
+ees:
+  storage:
+    root: ${EES_STORAGE_ROOT:./data}
+
+logging:
+  level:
+    com.ees: DEBUG

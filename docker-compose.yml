@@ -1,0 +1,98 @@
+# ============================================================================
+#  效能评估系统 - Docker Compose 编排
+#
+#  两个容器：
+#    mysql    —— 官方 MySQL 9.6 镜像（与开发环境版本一致）
+#    backend  —— 由 Dockerfile 构建，内含后端接口 + 前端页面
+#
+#  启动：docker compose up -d
+#  停止：docker compose down          （保留数据）
+#  彻底清空：docker compose down -v   （连同数据库一起删除，慎用）
+#
+#  【重要】本文件不含 version 字段 —— Compose V2 已废弃该字段，写了会有警告。
+# ============================================================================
+
+services:
+
+  # --------------------------------------------------------------------------
+  # MySQL 数据库
+  #
+  # 【版本选择说明】这里用 9.6，而不是 8.4，原因有三：
+  #   1) 本机开发环境用的就是 MySQL Server 9.6.0，db/01_schema.sql 已在 9.6 上实测通过；
+  #   2) mysql:9.6 镜像已在有网机器上准备好，离线部署时无需再下载；
+  #   3) 与开发环境版本完全一致，避免「开发能跑、交付报错」的版本差异问题。
+  # 若甲方指定必须使用 LTS 版本，把下面的 image 改成 mysql:8.4 并重新拉取即可。
+  # --------------------------------------------------------------------------
+  mysql:
+    image: mysql:9.6
+    container_name: ees-mysql
+    restart: unless-stopped
+    environment:
+      # 下面两行会在 MySQL 首次启动时自动建库、建账号，无需手工执行 db/ 下的脚本
+      MYSQL_ROOT_PASSWORD: "Root@2026"
+      MYSQL_DATABASE: "efficiency_evaluation"
+      MYSQL_USER: "ees"
+      MYSQL_PASSWORD: "Ees@2026"
+      TZ: "Asia/Shanghai"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-time-zone=+08:00
+      - --max-connections=300
+    volumes:
+      # 数据持久化：容器删除后数据仍在，重新 up 即可恢复
+      - ees-mysql-data:/var/lib/mysql
+    healthcheck:
+      # 健康检查通过后才允许 backend 启动，避免后端因连不上库而反复重启
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - ees-net
+
+  # --------------------------------------------------------------------------
+  # 后端（含内嵌前端页面）
+  # --------------------------------------------------------------------------
+  backend:
+    image: ees-backend:1.0.0
+    container_name: ees-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 数据库连接：host 直接用服务名 mysql，由 Docker 内置 DNS 解析
+      EES_DB_HOST: "mysql"
+      EES_DB_PORT: "3306"
+      EES_DB_NAME: "efficiency_evaluation"
+      EES_DB_USER: "ees"
+      EES_DB_PASSWORD: "Ees@2026"
+      # 运行期数据目录（上传文件 / 报告 / JWT 密钥）
+      EES_STORAGE_ROOT: "/app/data"
+      # 生产环境建议显式指定 JWT 密钥；留空则首次启动自动生成并持久化到 /app/data
+      # EES_JWT_SECRET: "请替换为一段足够长的随机字符串"
+      TZ: "Asia/Shanghai"
+    volumes:
+      # 必须持久化：否则每次重建容器 JWT 密钥都会变，所有用户被强制重新登录
+      - ees-app-data:/app/data
+    ports:
+      # 左=宿主机端口，右=容器端口。宿主机 8080 被占用时改左边即可
+      - "8080:8080"
+    networks:
+      - ees-net
+
+# ----------------------------------------------------------------------------
+# 数据卷：由 Docker 管理，实际存放在 Docker Desktop 的数据目录里
+# ----------------------------------------------------------------------------
+volumes:
+  ees-mysql-data:
+    name: ees-mysql-data
+  ees-app-data:
+    name: ees-app-data
+
+networks:
+  ees-net:
+    name: ees-net
+    driver: bridge

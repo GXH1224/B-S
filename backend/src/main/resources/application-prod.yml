@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${EES_DB_HOST:127.0.0.1}:${EES_DB_PORT:3306}/${EES_DB_NAME:efficiency_evaluation}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${EES_DB_USER:ees}
+    password: ${EES_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: EesHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 50
+      connection-timeout: 30000
+
+springdoc:
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.ees: INFO

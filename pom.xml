@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    聚合工程（packaging=pom）。
+
+    作用：把本仓库根目录作为 IntelliJ IDEA 的项目根打开时，IDEA 能自动导入 Maven，
+    并把 backend 识别为一个模块（模块名 = 子工程 artifactId = evaluation-backend），
+    于是可以直接使用 .idea/runConfigurations 里预置的运行配置。
+
+    常用命令（在仓库根目录执行）：
+      mvn -pl backend spring-boot:run        # 启动后端（已内置托管前端页面，访问 8080）
+      mvn -pl backend clean package -DskipTests
+  -->
+  <groupId>com.ees</groupId>
+  <artifactId>efficiency-evaluation-system</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <name>efficiency-evaluation-system</name>
+  <description>效能评估系统（聚合工程：backend 为后端模块，frontend 为 Vite 前端工程）</description>
+
+  <modules>
+    <module>backend</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+</project>

@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <!--
+    只构建前端静态资源（npm run build → frontend/dist）。
+    配置①启动后端时会托管该产物；改了前端代码后用它重新生成。
+  -->
+  <configuration default="false" name="③ 构建前端（npm run build）" type="js.build_tools.npm" factoryName="npm">
+    <package-json value="$PROJECT_DIR$/frontend/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="build" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

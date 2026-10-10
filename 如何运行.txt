@@ -1,0 +1,50 @@
+﻿效能评估系统 v1.0.0 —— 解压之后怎么运行
+=====================================================================
+
+一、这个包里有什么
+  backend\    后端源码（Java 21 + Spring Boot）；backend\target\evaluation-backend.jar
+              是【已构建好】的可运行程序
+  frontend\   前端源码（Vue 3 + Vite）；frontend\dist 是【已构建好】的页面，
+              同样的页面也已经打进上面那个 jar 里
+  db\         数据库脚本（建库 / 建表 / 初始数据）
+  samples\    指标体系与试验数据的样例文件（可直接用于导入演示）
+  scripts\    一键启动 / 停止 / 构建脚本（不写死任何本机路径）
+  docs\       使用手册、验收清单、接口文档、部署说明、代码详解（CODE_GUIDE）
+
+二、最快的方式（推荐；目标机器不需要 Node，也不需要 Maven）
+  前提：装好 JDK 21（java 在 PATH 里），并有一个可用的 MySQL 8 实例。
+  1) 初始化数据库（只需执行一次）。用 Navicat 或命令行按顺序执行 db\ 下三个脚本：
+       00_create_database.sql   建库与账号
+       01_schema.sql            建表
+       02_seed.sql              初始数据（角色、默认账号、系统参数）
+  2) 双击  scripts\start-offline.bat
+     脚本会检查 java、组装数据库连接参数并启动后端，监听 8080 端口。
+  3) 浏览器打开   http://127.0.0.1:8080/
+     默认账号： admin / admin123 （系统管理员） 、 evaluator / eval123 （评估人员）
+  4) 停止：在启动窗口按 Ctrl+C；也可执行 scripts\stop-all.bat
+
+三、在 IDEA 里运行（需要改代码时用）
+  1) 用 IDEA 打开本目录（本目录就是项目根，backend / frontend 是它的两个子模块）
+  2) 先做一次数据库初始化（同上面第 1 步）
+  3) 运行后端：主类 com.ees.EesApplication（.idea\runConfigurations 里也带了运行配置）
+  4) 前端开发模式：进入 frontend 执行 npm install 然后 npm run dev（需要 Node 18+ 与网络）；
+     只是想看页面的话不必装 Node —— 直接启动后端即可，页面已内置在 jar 中
+
+四、从源码重新构建（需要 Node 与 Maven 都在 PATH 里）
+  双击 scripts\build-all.bat，它会依次执行 npm install、npm run build、mvn clean package。
+  产物位置： frontend\dist   与   backend\target\evaluation-backend.jar
+
+五、数据库连接参数（可用环境变量覆盖；未设置时使用下列默认值）
+  EES_DB_HOST=127.0.0.1      EES_DB_PORT=3306
+  EES_DB_NAME=efficiency_evaluation
+  EES_DB_USER=ees            EES_DB_PASSWORD=Ees@2026
+  EES_STORAGE_ROOT          上传文件 / 日志 / JWT 密钥的存放目录（默认 .\data）
+  提示：正式交付前请按 db\00_create_database.sql 文件头的说明修改默认口令。
+
+六、几点说明
+  · 运行期数据（data 目录：上传文件、报告、日志、JWT 签名密钥）不在本包内，首次启动会自动生成；
+  · 本包未包含 Node 的 node_modules 与 Maven 本地仓库：
+    只运行第二节那个 jar 时完全不需要它们；若要在完全离线的机器上从源码构建，
+    需要另配离线的 npm 镜像与 Maven 仓库；
+  · 本包未包含 .git 版本库（避免对外暴露开发过程记录）；需要带提交历史的版本可另行索取；
+  · 更详细的内容见 README.md、docs\USER_GUIDE.md、docs\DEPLOY.md、docs\CODE_GUIDE\README.md。
