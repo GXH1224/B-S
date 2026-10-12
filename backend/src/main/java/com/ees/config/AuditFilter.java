@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,8 @@ import java.util.List;
 @Component
 @Order(20)
 public class AuditFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditFilter.class);
 
     private final EesProperties properties;
     private final AuditService auditService;
@@ -51,13 +55,22 @@ public class AuditFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
-            long cost = System.currentTimeMillis() - begin;
-            String module = resolveModule(info == null ? null : info.uri);
-            String action = (info == null ? "" : info.method + " " + info.uri);
-            boolean ok = response.getStatus() < 400;
-            String err = ok ? null : ("HTTP " + response.getStatus());
-            auditService.record(module, action, null, null, null, ok, err, cost,
-                    userId, username, info);
+            // 审计是旁路能力，绝不能因为它失败而让主业务返回 500。
+            // 这里的 record() 是 @Async 提交，当 ioExecutor 队列满时会抛
+            // TaskRejectedException（异常由线程池在提交阶段抛出，进不到 @Async 方法体），
+            // 若不捕获会直接冒泡覆盖已经成功的业务响应 —— 这正是「接口报 500 但数据其实写进去了」
+            // 这类怪现象的来源。
+            try {
+                long cost = System.currentTimeMillis() - begin;
+                String module = resolveModule(info == null ? null : info.uri);
+                String action = (info == null ? "" : info.method + " " + info.uri);
+                boolean ok = response.getStatus() < 400;
+                String err = ok ? null : ("HTTP " + response.getStatus());
+                auditService.record(module, action, null, null, null, ok, err, cost,
+                        userId, username, info);
+            } catch (Exception e) {
+                log.warn("审计日志记录失败，已忽略: {}", e.getMessage());
+            }
         }
     }
 

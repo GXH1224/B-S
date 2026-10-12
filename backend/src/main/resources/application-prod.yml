@@ -6,9 +6,19 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       pool-name: EesHikariPool
-      minimum-idle: 5
-      maximum-pool-size: 50
-      connection-timeout: 30000
+      minimum-idle: 10
+      # 50 → 80：修完 CodeService / ReportService / AuthService 三处连接占用问题后再评估，
+      # 不必盲目加到 200（连接数超过 CPU 核数后数据库内部争抢，吞吐反而下降）。
+      # 若要提到 80 以上，需同步确认 MySQL max_connections（默认 151）。
+      maximum-pool-size: 80
+      # 30s → 10s：池满时 30 秒等待会把 Tomcat 工作线程全部占满，把局部问题升级成全站雪崩；
+      # 10 秒快速失败，至少其他请求还能正常响应。
+      connection-timeout: 10000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # 连接被占用超过 20s 就打警告日志，便于压测时定位连接泄漏
+      leak-detection-threshold: 20000
 
 springdoc:
   api-docs:

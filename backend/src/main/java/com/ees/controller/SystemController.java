@@ -99,8 +99,10 @@ public class SystemController {
     @PostMapping("/audit-logs/purge")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ApiResponse<Map<String, Object>> purgeAudit(@RequestBody Map<String, Object> body) {
-        int days = body.get("retentionDays") instanceof Number n ? n.intValue()
-                : configService.getInt("audit.retention.days", 365);
+        int requested = body.get("retentionDays") instanceof Number n ? n.intValue()
+                : configService.getInt("audit.retention.days", AuditService.MAX_RETENTION_DAYS);
+        // 收敛到 [1, 30] 天：无论请求体或系统参数填了多少，保留期都不会超过一个月
+        int days = AuditService.clampRetentionDays(requested);
         int removed = auditService.purge(days);
         return ApiResponse.ok(Map.of("removed", removed, "retentionDays", days), "清理完成");
     }

@@ -73,7 +73,17 @@ public class AuthService {
         return roleRepository.findByRoleCode(roleCode).map(SysRole::getDataScope).orElse("PROJECT");
     }
 
-    @Transactional
+    /**
+     * 登录。
+     *
+     * <p><b>刻意不加 {@code @Transactional}</b>：方法内部 {@code auditService.recordSync()}
+     * 标注了 {@code REQUIRES_NEW}，若外层再开事务，Spring 会「挂起」外层事务而非结束它 ——
+     * 外层连接不释放，同时额外再借一个连接，<b>一次登录占用 2 个数据库连接</b>，
+     * 并发登录容量直接腰斩（prod 池 50 时仅能支撑 25 并发，dev 池 30 时仅 15）。</p>
+     *
+     * <p>去掉后一次登录只占 1 个连接。安全性：登录失败计数自增与账号锁定是单条
+     * {@code save()}，本身即为原子操作，不需要整体回滚语义。</p>
+     */
     public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         String username = request.getUsername().trim();
         SysUser user = userRepository.findByUsernameAndDeletedFalse(username).orElse(null);

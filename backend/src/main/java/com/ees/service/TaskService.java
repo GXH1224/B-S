@@ -8,6 +8,7 @@ import com.ees.algorithm.AlgorithmType;
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
 import com.ees.common.JsonUtils;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.config.EesProperties;
 import com.ees.domain.AhpConsistency;
@@ -106,6 +107,7 @@ public class TaskService {
     public PageResult<EvaluationTask> search(Long projectId, String algorithm, String status,
                                             String keyword, LocalDateTime from, LocalDateTime to,
                                             int page, int size) {
+        size = PageLimits.size(size);
         // 数据权限：null = 不限制（管理员 / ALL 范围）；空集合 = 无可见项目，直接返回空页
         // （空集合不能进 SQL 的 in ()，所以在这里短路）
         List<Long> ids = projectService.visibleProjectIds();

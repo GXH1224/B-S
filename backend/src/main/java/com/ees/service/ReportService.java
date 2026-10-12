@@ -3,6 +3,7 @@ package com.ees.service;
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
 import com.ees.common.JsonUtils;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.config.EesProperties;
 import com.ees.domain.EvaluationResult;
@@ -72,22 +73,23 @@ public class ReportService {
     private final ProjectService projectService;
     private final EesProperties properties;
     private final com.ees.repository.EvaluationTaskRepository taskRepository;
-    private final CodeService codeService;
+    private final ReportTxService reportTxService;
 
     public ReportService(ReportRecordRepository reportRepository, ResultService resultService,
                          ProjectService projectService, EesProperties properties,
                          com.ees.repository.EvaluationTaskRepository taskRepository,
-                         CodeService codeService) {
+                         ReportTxService reportTxService) {
         this.reportRepository = reportRepository;
         this.resultService = resultService;
         this.projectService = projectService;
         this.properties = properties;
         this.taskRepository = taskRepository;
-        this.codeService = codeService;
+        this.reportTxService = reportTxService;
     }
 
     @Transactional(readOnly = true)
     public PageResult<ReportRecord> search(Long projectId, String reportType, Long taskId, int page, int size) {
+        size = PageLimits.size(size);
         Page<ReportRecord> p = reportRepository.search(projectId, blankToNull(reportType), taskId,
                 PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.DESC, "id")));
         return PageResult.of(p.getContent(), p.getTotalElements(), page, size);
@@ -121,9 +123,21 @@ public class ReportService {
     /**
      * 生成报告。
      *
+     * <p><b>刻意不加 {@code @Transactional}</b>：文件渲染（PDF / Word / Excel）耗时数百毫秒
+     * 到数秒，若整段包在事务里，数据库连接会被占用同样长的时间 —— 池 50 时约
+     * <b>15 个并发导出就能打满连接池</b>。改为三段式：</p>
+     *
+     * <ol>
+     *   <li>事务 1：创建 GENERATING 记录（毫秒级）</li>
+     *   <li>事务外：渲染文件（数秒级，不占用连接）</li>
+     *   <li>事务 2 / 3：置 READY 或 FAILED（毫秒级）</li>
+     * </ol>
+     *
+     * <p>连接占用时长从约 3000ms 降到约 20ms。附带修复：原实现中失败时设置的
+     * FAILED 状态与抛出的异常同处一个事务，异常回滚会把 FAILED 一并抹掉。</p>
+     *
      * @param type EXCEL / WORD / PDF
      */
-    @Transactional
     public ReportRecord generate(Long taskId, Long resultId, String type, String operator) {
         String t = type == null ? "EXCEL" : type.toUpperCase();
         if (!List.of("EXCEL", "WORD", "PDF", "JSON").contains(t)) {
@@ -133,19 +147,12 @@ public class ReportService {
                 .orElseThrow(() -> BizException.notFound("评估任务不存在"));
         Project project = projectService.get(task.getProjectId());
 
-        ReportRecord record = new ReportRecord();
-        record.setReportCode(codeService.next("RPT", "report_record", "report_code"));
-        record.setReportName(task.getTaskName() + " 评估报告");
-        record.setTaskId(taskId);
-        record.setResultId(resultId);
-        record.setProjectId(project.getId());
-        record.setReportType(t);
-        record.setStatus("GENERATING");
-        record.setCreatedBy(operator);
-        record.setCreatedAt(LocalDateTime.now());
-        reportRepository.save(record);
+        // 事务 1（毫秒级）：先落一条 GENERATING 记录，前端可立即看到任务已提交
+        ReportRecord record = reportTxService.create(taskId, resultId, project.getId(),
+                task.getTaskName() + " 评估报告", t, operator);
 
         try {
+            // 以下全部在事务外执行，期间不占用数据库连接
             Map<String, Object> payload = resultService.exportPayload(taskId, resultId);
             Path dir = Paths.get(properties.getStorage().getReportDir(),
                     LocalDateTime.now().toLocalDate().toString()).toAbsolutePath().normalize();
@@ -166,20 +173,17 @@ public class ReportService {
                 default -> Files.writeString(target, JsonUtils.toPrettyJson(payload));
             }
 
-            record.setFileName(fileName);
-            record.setFilePath(target.toString());
-            record.setFileSize(Files.size(target));
-            record.setStatus("READY");
-            reportRepository.save(record);
-            log.info("生成报告 {} ({}) 大小 {} 字节", record.getReportCode(), t, record.getFileSize());
+            long size = Files.size(target);
+            // 事务 2（毫秒级）：置 READY
+            reportTxService.markReady(record.getId(), fileName, target.toString(), size);
+            log.info("生成报告 {} ({}) 大小 {} 字节", record.getReportCode(), t, size);
         } catch (Exception e) {
             log.error("生成报告失败", e);
-            record.setStatus("FAILED");
-            record.setErrorMsg(truncate(e.getMessage(), 900));
-            reportRepository.save(record);
+            // 事务 3（毫秒级）：置 FAILED。独立事务提交，不会随异常回滚而丢失
+            reportTxService.markFailed(record.getId(), truncate(e.getMessage(), 900));
             throw new BizException(ErrorCode.SYSTEM_ERROR, "生成报告失败：" + e.getMessage(), e);
         }
-        return record;
+        return reportTxService.get(record.getId());
     }
 
     // ------------------------------------------------------------------ Excel

@@ -3,6 +3,7 @@ package com.ees.service;
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
 import com.ees.common.JsonUtils;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.Indicator;
 import com.ees.domain.IndicatorImportBatch;
@@ -66,6 +67,7 @@ public class IndicatorService {
 
     @Transactional(readOnly = true)
     public PageResult<IndicatorVersion> search(String keyword, String status, Long projectId, int page, int size) {
+        size = PageLimits.size(size);
         // 数据权限：null = 不限制（管理员 / ALL 范围）；空集合 = 无可见项目，
         // 此时仍应看到公共版本（projectId 为空），因此不能直接返回空页，交给查询里的
         // 「:ids is null or v.projectId is null or v.projectId in :ids」处理。

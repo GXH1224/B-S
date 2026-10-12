@@ -39,7 +39,21 @@ public class CodeService {
      * @param table  对应表名（内部常量，不接受外部输入）
      * @param column 编号列名（内部常量，不接受外部输入）
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    /*
+     * 传播级别必须是 REQUIRED，不能是 REQUIRES_NEW。
+     *
+     * REQUIRES_NEW 会「挂起」外层事务而不是结束它 —— 外层已持有的连接不释放，
+     * 同时额外再借一个连接，导致「创建」类接口每次请求占用 2 个数据库连接
+     * （ProjectService.save / DataSourceService.save / DataBatchService.importFile /
+     *  createBatchFromRows / SnapshotService.createFromBatch / TaskService.create /
+     *  TaskService.retry / ReportService.generate 共 8 处调用点全部位于 @Transactional 方法内）。
+     *
+     * 编号的唯一性并不依赖数据库隔离级别，而是靠下面的进程内 reserved 预占
+     * 与 exists() 冲突探测保证，因此复用外层连接是安全的。
+     *
+     * 注意：不要改成 NOT_SUPPORTED —— 它同样会挂起外层事务，连接照旧翻倍。
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
     public String next(String prefix, String table, String column) {
         String day = LocalDateTime.now().format(DAY);
         String key = prefix + "-" + day;

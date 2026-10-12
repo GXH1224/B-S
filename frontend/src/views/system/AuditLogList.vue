@@ -193,7 +193,7 @@
       />
       <el-form label-width="96px">
         <el-form-item label="保留天数">
-          <el-input-number v-model="retentionDays" :min="1" :max="3650" :step="30" />
+          <el-input-number v-model="retentionDays" :min="1" :max="MAX_RETENTION_DAYS" :step="1" />
         </el-form-item>
       </el-form>
       <div class="ees-hint">将删除 {{ retentionDays }} 天之前的全部审计日志记录。</div>
@@ -364,10 +364,12 @@ async function openDetail(row: AuditRow) {
 /** ---------------- 清理过期日志 ---------------- */
 const purgeVisible = ref(false)
 const purging = ref(false)
-const retentionDays = ref(365)
+// 审计日志保留期上限为一个月；后端 AuditService 会再次收敛，前端只做体验层约束
+const MAX_RETENTION_DAYS = 30
+const retentionDays = ref(MAX_RETENTION_DAYS)
 
 function openPurge() {
-  retentionDays.value = 365
+  retentionDays.value = MAX_RETENTION_DAYS
   purgeVisible.value = true
 }
 

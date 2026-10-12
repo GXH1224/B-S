@@ -21,6 +21,15 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findAllByDeletedFalseOrderByIdDesc();
 
+    /**
+     * 带分页上限的项目列表查询。
+     *
+     * <p>供无分页的 {@code GET /api/projects/all} 使用：原实现走
+     * {@code findAllByDeletedFalseOrderByIdDesc()} 会把整表拉进内存，
+     * 既无鉴权也无条数上限。</p>
+     */
+    Page<Project> findAllByDeletedFalse(Pageable pageable);
+
     @Query("""
             select p from Project p where p.deleted = false
               and (:keyword is null or p.projectName like %:keyword% or p.projectCode like %:keyword%)

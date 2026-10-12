@@ -3,6 +3,7 @@ package com.ees.service;
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
 import com.ees.common.JsonUtils;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.EvaluationResult;
 import com.ees.domain.EvaluationTask;
@@ -59,6 +60,7 @@ public class ResultService {
     @Transactional(readOnly = true)
     public PageResult<EvaluationResult> search(Long projectId, Long taskId, String algorithm, String level,
                                                String publishStatus, String objectCode, int page, int size) {
+        size = PageLimits.size(size);
         // 数据权限：null = 不限制（管理员 / ALL 范围）；空集合 = 无可见项目，直接返回空页
         List<Long> ids = projectService.visibleProjectIds();
         if (ids != null && ids.isEmpty()) {
@@ -113,6 +115,7 @@ public class ResultService {
     @Transactional(readOnly = true)
     public PageResult<ResultDetail> details(Long resultId, String keyword, String sortBy, String order,
                                             int page, int size) {
+        size = PageLimits.size(size);
         requireResultVisible(resultId);
         Sort sort = Sort.by("DESC".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC,
                 allowedSortField(sortBy));

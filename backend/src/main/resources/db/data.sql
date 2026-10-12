@@ -31,7 +31,7 @@ INSERT IGNORE INTO `sys_config` (`config_key`, `config_value`, `config_group`, `
 ('report.pdf.font',        'STSong-Light',     'REPORT',    'PDF 中文字体名',                            1, NOW(), NOW()),
 ('security.login.maxfail', '5',                'SECURITY',  '登录失败锁定阈值',                          1, NOW(), NOW()),
 ('security.login.lockmin', '15',               'SECURITY',  '登录锁定时长（分钟）',                      1, NOW(), NOW()),
-('audit.retention.days',   '365',              'SECURITY',  '审计日志保留天数',                          1, NOW(), NOW());
+('audit.retention.days',   '30',               'SECURITY',  '审计日志保留天数（上限 30 天）',            1, NOW(), NOW());
 
 -- ---------------------------------------------------------------------------
 -- 数据质量规则（对应方案 5.3）

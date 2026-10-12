@@ -13,9 +13,12 @@ spring:
       maximum-pool-size: 30
       idle-timeout: 600000
       max-lifetime: 1800000
-      connection-timeout: 30000
+      # 与 prod 保持一致：池满时快速失败优于长时间挂起（避免 Tomcat 线程被等待耗尽）
+      connection-timeout: 10000
       validation-timeout: 5000
       connection-test-query: SELECT 1
+      # 连接被占用超过 20s 就打警告日志，便于本地压测时定位连接泄漏
+      leak-detection-threshold: 20000
 
   # 开发环境由后端直接托管前端构建产物：
   # 在 IDEA 里只运行后端（EesApplication），浏览器打开 http://127.0.0.1:8080/ 即为完整页面。

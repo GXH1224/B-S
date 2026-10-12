@@ -6,6 +6,7 @@ import com.ees.algorithm.ScoringSupport;
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
 import com.ees.common.JsonUtils;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.DataBatch;
 import com.ees.domain.DataSnapshot;
@@ -71,6 +72,7 @@ public class SnapshotService {
 
     @Transactional(readOnly = true)
     public PageResult<DataSnapshot> search(Long projectId, String status, String keyword, int page, int size) {
+        size = PageLimits.size(size);
         // 数据权限：null = 不限制（管理员 / ALL 范围）；空集合 = 无可见项目，直接返回空页
         List<Long> ids = projectService.visibleProjectIds();
         if (ids != null && ids.isEmpty()) {

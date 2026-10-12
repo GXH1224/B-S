@@ -2,6 +2,7 @@ package com.ees.service;
 
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.config.EesProperties;
 import com.ees.domain.DataBatch;
@@ -76,6 +77,7 @@ public class DataSourceService {
 
     @Transactional(readOnly = true)
     public PageResult<DataSourceEntity> search(String keyword, String dbType, int page, int size) {
+        size = PageLimits.size(size);
         Page<DataSourceEntity> p = repository.search(blankToNull(keyword), blankToNull(dbType),
                 PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.DESC, "id")));
         p.getContent().forEach(d -> d.setDbPassword(null));

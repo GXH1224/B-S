@@ -1,5 +1,6 @@
 package com.ees.service;
 
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.SysAuditLog;
 import com.ees.repository.SysAuditLogRepository;
@@ -27,10 +28,31 @@ public class AuditService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditService.class);
 
-    private final SysAuditLogRepository repository;
+    /** 单批删除行数：每批一个独立短事务，避免单事务无界删除长时间持有连接。 */
+    private static final int PURGE_BATCH_SIZE = 1000;
 
-    public AuditService(SysAuditLogRepository repository) {
+    /**
+     * 审计日志最长保留天数：<b>一个月</b>。
+     *
+     * <p>无论系统参数 {@code audit.retention.days} 配成多少、前端传入多少，
+     * 实际清理都会收敛到该上限，保证「超过一个月的日志自动清理」这条约束不被绕过。</p>
+     */
+    public static final int MAX_RETENTION_DAYS = 30;
+
+    /** 审计日志最短保留天数，防止误填 0 或负数导致清空全表。 */
+    public static final int MIN_RETENTION_DAYS = 1;
+
+    /** 把保留天数收敛到 [1, 30] 天。定时任务与手动清理接口共用。 */
+    public static int clampRetentionDays(int retentionDays) {
+        return Math.min(Math.max(retentionDays, MIN_RETENTION_DAYS), MAX_RETENTION_DAYS);
+    }
+
+    private final SysAuditLogRepository repository;
+    private final AuditTxService auditTxService;
+
+    public AuditService(SysAuditLogRepository repository, AuditTxService auditTxService) {
         this.repository = repository;
+        this.auditTxService = auditTxService;
     }
 
     /**
@@ -93,7 +115,8 @@ public class AuditService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordSync(String module, String action, String targetType, String targetId,
                            String detail, boolean success, String errorMsg,
-                           Long userId, String username, HttpServletRequest request) {        try {
+                           Long userId, String username, HttpServletRequest request) {
+        try {
             SysAuditLog entry = new SysAuditLog();
             entry.setUserId(userId);
             entry.setUsername(username == null ? "anonymous" : username);
@@ -121,6 +144,7 @@ public class AuditService {
     public PageResult<SysAuditLog> search(String username, String module, Boolean success,
                                           LocalDateTime from, LocalDateTime to,
                                           int page, int size) {
+        size = PageLimits.size(size);
         Page<SysAuditLog> p = repository.search(
                 blankToNull(username), blankToNull(module), success, from, to,
                 PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.DESC, "id")));
@@ -132,13 +156,31 @@ public class AuditService {
         return repository.findById(id).orElse(null);
     }
 
-    /** 清理过期审计日志（仅系统管理员，且日志不得由普通用户删除）。 */
-    @Transactional
+    /**
+     * 清理过期审计日志（仅系统管理员，且日志不得由普通用户删除）。
+     *
+     * <p>分批删除：单事务无界删除几百万行会长时间持有数据库连接、生成巨大 undo log
+     * 并锁大量行。改为每批 {@value #PURGE_BATCH_SIZE} 行一个独立短事务，
+     * 批与批之间连接立即释放。</p>
+     *
+     * <p>保留天数会被收敛到 {@code [1, 30]} 天。本方法是清理的<b>唯一执行入口</b>，
+     * 定时任务与手动清理接口都经过它，因此「最多保留一个月」在服务端无法被绕过。</p>
+     */
     public int purge(int retentionDays) {
-        LocalDateTime before = LocalDateTime.now().minusDays(retentionDays);
-        long n = repository.deleteByCreatedAtBefore(before);
-        log.info("清理 {} 天前的审计日志，共 {} 条", retentionDays, n);
-        return (int) n;
+        int days = clampRetentionDays(retentionDays);
+        if (days != retentionDays) {
+            log.info("审计日志保留天数 {} 超出允许范围 [{}, {}]，已收敛为 {} 天",
+                    retentionDays, MIN_RETENTION_DAYS, MAX_RETENTION_DAYS, days);
+        }
+        LocalDateTime before = LocalDateTime.now().minusDays(days);
+        int total = 0;
+        int batch;
+        do {
+            batch = auditTxService.deleteBatch(before, PURGE_BATCH_SIZE);
+            total += batch;
+        } while (batch == PURGE_BATCH_SIZE);
+        log.info("清理 {} 天前的审计日志，共 {} 条", days, total);
+        return total;
     }
 
     public static String clientIp(HttpServletRequest request) {

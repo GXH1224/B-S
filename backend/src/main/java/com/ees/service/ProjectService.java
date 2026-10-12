@@ -2,6 +2,7 @@ package com.ees.service;
 
 import com.ees.common.BizException;
 import com.ees.common.ErrorCode;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.Project;
 import com.ees.domain.ProjectMember;
@@ -40,6 +41,9 @@ public class ProjectService {
     private final EvaluationResultRepository resultRepository;
     private final DataBatchRepository batchRepository;
     private final CodeService codeService;
+
+    /** 无分页接口（GET /api/projects/all）返回条数上限，防止一次拉全表把内存打爆。 */
+    private static final int MAX_ALL_SIZE = 500;
 
     public ProjectService(ProjectRepository projectRepository, ProjectMemberRepository memberRepository,
                           SysUserRepository userRepository, EvaluationTaskRepository taskRepository,
@@ -82,6 +86,7 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public PageResult<Project> search(String keyword, String status, int page, int size) {
+        size = PageLimits.size(size);
         List<Long> ids = visibleProjectIds();
         if (ids != null && ids.isEmpty()) {
             return PageResult.empty(page, size);
@@ -102,7 +107,10 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public List<Project> all() {
         List<Long> ids = visibleProjectIds();
-        List<Project> list = projectRepository.findAllByDeletedFalseOrderByIdDesc();
+        // 在数据库层就限制条数（而非查全表后在内存里截断）
+        List<Project> list = projectRepository
+                .findAllByDeletedFalse(PageRequest.of(0, MAX_ALL_SIZE, Sort.by(Sort.Direction.DESC, "id")))
+                .getContent();
         if (ids == null) {
             return list;
         }

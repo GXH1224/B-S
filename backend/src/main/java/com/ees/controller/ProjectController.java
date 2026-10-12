@@ -40,7 +40,9 @@ public class ProjectController {
         return ApiResponse.ok(projectService.options());
     }
 
+    /** GET /api/projects/all 项目全量列表（下拉选择用）。与 /api/projects 保持同一鉴权口径。 */
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('project:list') or hasRole('SYSTEM_ADMIN')")
     public ApiResponse<List<Project>> all() {
         return ApiResponse.ok(projectService.all());
     }

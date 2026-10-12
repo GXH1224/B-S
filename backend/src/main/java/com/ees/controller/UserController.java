@@ -1,6 +1,7 @@
 package com.ees.controller;
 
 import com.ees.common.ApiResponse;
+import com.ees.common.PageLimits;
 import com.ees.common.PageResult;
 import com.ees.domain.SysRole;
 import com.ees.domain.SysUser;
@@ -46,6 +47,7 @@ public class UserController {
                                                    @RequestParam(required = false) String status,
                                                    @RequestParam(defaultValue = "1") int page,
                                                    @RequestParam(defaultValue = "20") int size) {
+        size = PageLimits.size(size);
         Page<SysUser> p = userRepository.search(blank(keyword), blank(roleCode), blank(status),
                 PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.ASC, "id")));
         return ApiResponse.ok(PageResult.of(p.getContent(), p.getTotalElements(), page, size));

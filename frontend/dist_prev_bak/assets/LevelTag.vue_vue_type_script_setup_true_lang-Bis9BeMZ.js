@@ -1,0 +1,1 @@
+import{l as a}from"./format-C-QDr3H8.js";import{G as s,L as l,M as n,S as o,u as r,$ as t}from"./vue-CwYx_2nS.js";const f=s({__name:"LevelTag",props:{level:{}},setup(e){return(c,m)=>(l(),n("span",{class:o(r(a)(e.level))},t(e.level||"未评级"),3))}});export{f as _};
